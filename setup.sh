@@ -23,6 +23,9 @@ printf "Chainlink admin username: ${BLUE}$USER_EMAIL\n${normal}\n"
 gcloud services enable compute.googleapis.com --project $PROJECT_ID
 gcloud services enable container.googleapis.com --project $PROJECT_ID
 gcloud services enable cloudresourcemanager.googleapis.com --project $PROJECT_ID
+gcloud services enable serviceusage.googleapis.com --project $PROJECT_ID
+gcloud services enable iam.googleapis.com --project $PROJECT_ID
+gcloud services enable cloudbilling.googleapis.com --project $PROJECT_ID
 
 #check if SA exists from a previous run
 SA_EMAIL=$(gcloud --project $PROJECT_ID iam service-accounts list \

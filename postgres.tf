@@ -39,6 +39,10 @@ resource "kubernetes_config_map" "postgres" {
     "POSTGRES_USER"     = var.postgres_username
     "POSTGRES_PASSWORD" = random_password.postgres-password.result
   }
+ #BRIT: Added dependency on namespace creation.
+  depends_on = [
+  	kubernetes_namespace.chainlink
+  ]
 }
 
 resource "kubernetes_stateful_set" "postgres" {
@@ -64,7 +68,7 @@ resource "kubernetes_stateful_set" "postgres" {
       spec {
         container {
           name  = "postgres"
-          image = "postgres:9.6.17"
+          image = "postgres:13.3" #BRIT: Updated to highest current release from 9.6.17
 
           env_from {
             config_map_ref {
@@ -101,4 +105,8 @@ resource "kubernetes_stateful_set" "postgres" {
       }
     }
   }
+  #BRIT: Added dependency on main node creation & a config_map.
+  depends_on = [
+  	google_container_node_pool.main_nodes, kubernetes_config_map.postgres
+  ]
 }

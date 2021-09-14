@@ -51,13 +51,14 @@ resource "kubernetes_config_map" "chainlink-env" {
     LINK_CONTRACT_ADDRESS      = "0x20fe562d797a42dcb3399062ae9546cd06f63280"
     CHAINLINK_TLS_PORT         = 0
     SECURE_COOKIES             = false
-    ORACLE_CONTRACT_ADDRESS    = "0x9f37f5f695cc16bebb1b227502809ad0fb117e08"
+    GAS_UPDATER_ENABLED        = true
     ALLOW_ORIGINS              = "*"
-    MINIMUM_CONTRACT_PAYMENT   = 100
     DATABASE_URL               = format("postgresql://%s:%s@postgres:5432/chainlink?sslmode=disable", var.postgres_username, random_password.postgres-password.result)
     DATABASE_TIMEOUT           = 0
-    ETH_URL                    = "wss://rinkeby-light.eth.linkpool.io/ws"
+    ETH_URL                    = "wss://ropsten.infura.io/ws/v3/a13a37a22d784e39926def7c35e9e415"
   }
+  #BRIT: Added dependency on namespace creation.
+  depends_on = [kubernetes_namespace.chainlink]
 }
 
 
@@ -80,6 +81,10 @@ resource "kubernetes_secret" "api-credentials" {
   data = {
     api = format("%s\n%s", var.node_username, random_password.api-password.result)
   }
+#BRIT: Added dependency on namespace creation.
+  depends_on = [
+  	kubernetes_namespace.chainlink
+  ]
 }
 
 resource "kubernetes_secret" "password-credentials" {
@@ -91,6 +96,10 @@ resource "kubernetes_secret" "password-credentials" {
   data = {
     password = random_password.wallet-password.result
   }
+  #BRIT: Added dependency on namespace creation.
+  depends_on = [
+  	kubernetes_namespace.chainlink
+  ]
 }
 
 
@@ -164,8 +173,10 @@ resource "kubernetes_deployment" "chainlink-node" {
     }
   }
 
+  #BRIT: Added dependency on Main-Nodes & PostgreDB creation.
   depends_on = [
-    kubernetes_service.postgres
+  	google_container_node_pool.main_nodes, 
+  	kubernetes_stateful_set.postgres
   ]
 }
 
@@ -183,6 +194,10 @@ resource "kubernetes_service" "chainlink_service" {
       port = 6688
     }
   }
+  #BRIT: Added dependency on namespace creation.
+  depends_on = [
+  	kubernetes_namespace.chainlink
+  ]
 }
 
 resource "google_compute_global_address" "chainlink-node" {
@@ -205,6 +220,10 @@ resource "kubernetes_ingress" "chainlink_ingress" {
       service_port = 6688
     }
   }
+  #BRIT: Added dependency on namespace creation.
+  depends_on = [
+  	kubernetes_namespace.chainlink
+  ]
 }
 
 output "chainlink_ip" {

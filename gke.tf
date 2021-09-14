@@ -1,6 +1,14 @@
+resource "google_project_service" "container_api" {
+  service                    = "container.googleapis.com"
+  disable_dependent_services = true
+}
 resource "google_service_account" "gke-nodes" {
   account_id   = "cl-gke-nodes"
   display_name = "Service Account used by Kubernetes Cluster"
+ #BRIT: Service account creation is eventually consistent, so added a dependency.
+  depends_on = [
+  	google_project_service.container_api
+  ]
 }
 
 #TODO firewall rules
@@ -17,6 +25,10 @@ resource "google_container_cluster" "gke-cluster" {
   initial_node_count       = 3
 
   enable_legacy_abac = false
+  #BRIT: Added dependency on API being available.
+  depends_on = [
+  	google_project_service.container_api
+  ]
 }
 
 resource "google_container_node_pool" "main_nodes" {
@@ -25,6 +37,7 @@ resource "google_container_node_pool" "main_nodes" {
   node_count = 3
 
   node_config {
+    preemptible  = true #BRIT: Added this per Terraform 3.82 Doc
     image_type   = "COS"
     disk_size_gb = 100
     disk_type    = "pd-standard"
@@ -39,4 +52,8 @@ resource "google_container_node_pool" "main_nodes" {
       "cloud-platform"
     ]
   }
+ #BRIT: Added dependency on initial cluster/node builds & teardown.
+  depends_on = [
+  	google_container_cluster.gke-cluster
+  ]
 }
